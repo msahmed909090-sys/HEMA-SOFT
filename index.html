@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HEMA SOFT - مساحة العمل الذكية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --sidebar-bg: #1e293b;
+      --card-bg: #243045;
+      --accent-blue: #3b82f6;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --accent-orange: #f97316;
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --border-color: #334155;
+      --chat-user: #2563eb;
+      --chat-ai: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Tajawal', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+    .hidden { display: none !important; }
+
+    /* --- App Layout --- */
+    .app-layout { display: flex; height: 100vh; width: 100vw; }
+
+    /* --- Sidebar (Right) --- */
+    .sidebar {
+      width: 400px;
+      background-color: var(--sidebar-bg);
+      border-left: 1px solid var(--border-color);
+      display: flex; flex-direction: column; flex-shrink: 0; z-index: 50;
+    }
+
+    .sidebar-header {
+      padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+      background: rgba(30, 41, 59, 0.95);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logo { font-size: 1.6rem; font-weight: 800; color: var(--accent-blue); }
+    .logo span { color: white; }
+
+    /* Tabs */
+    .nav-tabs {
+      display: flex; background: var(--bg-dark); padding: 0.5rem; gap: 0.5rem;
+    }
+    .tab-btn {
+      flex: 1; background: transparent; border: none;
+      color: var(--text-secondary); padding: 0.8rem; cursor: pointer;
+      border-radius: 6px; font-family: inherit; font-weight: 600; transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+    .tab-btn.active { background: var(--accent-blue); color: white; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+
+    /* Sidebar Content */
+    .sidebar-content {
+      flex: 1; overflow-y: auto; padding: 1.5rem; position: relative;
+    }
+    .panel { display: none; animation: fadeIn 0.3s ease; }
+    .panel.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Form Styles */
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; margin-bottom: 0.4rem; color: var(--text-secondary); font-size: 0.85rem; }
+    .form-control {
+      width: 100%; padding: 0.75rem; background: var(--bg-dark);
+      border: 1px solid var(--border-color); border-radius: 8px;
+      color: white; font-family: inherit; font-size: 0.95rem;
+    }
+    .form-control:focus { outline: none; border-color: var(--accent-blue); }
+    textarea.form-control { min-height: 70px; resize: vertical; }
+    
+    .btn-primary {
+      width: 100%; padding: 1rem; background: var(--accent-blue);
+      color: white; border: none; border-radius: 8px; font-weight: 700;
+      cursor: pointer; transition: background 0.2s; display: flex;
+      align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem;
+    }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-primary:disabled { opacity: 0.7; cursor: wait; }
+    .btn-secondary { background-color: var(--accent-green); }
+    .btn-secondary:hover { background-color: #059669; }
+
+    /* Chat Styles */
+    #chat-history {
+      height: calc(100vh - 280px);
+      overflow-y: auto;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--bg-dark);
+      padding: 1rem;
+      margin-bottom: 1rem;
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+    .message {
+      padding: 0.8rem 1rem; border-radius: 12px;
+      max-width: 85%; font-size: 0.95rem; line-height: 1.5; word-wrap: break-word;
+    }
+    .message.user {
+      background: var(--chat-user); color: white;
+      align-self: flex-start; border-bottom-right-radius: 2px;
+    }
+    .message.ai {
+      background: var(--chat-ai); color: var(--text-primary);
+      align-self: flex-end; border-bottom-left-radius: 2px;
+    }
+    .chat-input-area { display: flex; gap: 0.5rem; }
+    .chat-input-area .form-control { flex-grow: 1; }
+    .btn-icon {
+      background: var(--chat-ai); border: 1px solid var(--border-color);
+      color: var(--text-secondary); width: 44px; height: 44px;
+      border-radius: 8px; cursor: pointer; display:flex; align-items:center; justify-content:center;
+      flex-shrink: 0;
+    }
+    .btn-icon:hover { background: var(--border-color); color: white; }
+
+    /* --- Main Content (Left) --- */
+    .main-area {
+      flex: 1; padding: 2rem; overflow-y: auto;
+      background-image: radial-gradient(circle at top left, #1e293b 0%, #0f172a 40%);
+    }
+    .main-header {
+      margin-bottom: 2rem; border-bottom: 1px solid var(--border-color);
+      padding-bottom: 1rem;
+    }
+    .main-title h1 { font-size: 1.8rem; font-weight: 700; color: white; }
+    .main-title p { color: var(--text-secondary); margin-top: 0.5rem; }
+
+    /* --- Grid System & Cards --- */
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 1.5rem; padding-bottom: 2rem;
+    }
+    @media (max-width: 1400px) { .results-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1024px) {
+      .app-layout { flex-direction: column; overflow: auto; }
+      .sidebar { width: 100%; height: auto; border-left: none; border-bottom: 1px solid var(--border-color); }
+      .sidebar-content { height: auto; max-height: 600px; }
+      #chat-history { height: 300px; }
+      .results-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 640px) { .results-grid { grid-template-columns: 1fr; } }
+
+    /* Card */
+    .card {
+      background: var(--card-bg); border-radius: 12px;
+      border: 1px solid var(--border-color); padding: 1.5rem;
+      display: flex; flex-direction: column; height: 100%;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3); border-color: var(--accent-blue);
+    }
+    .card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; line-height: 1.4; font-weight: 700; }
+    .card-meta { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem; flex-grow: 1; }
+    .btn-download { display: block; text-align: center; background: var(--accent-blue); color: white; padding: 0.7rem; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 0.9rem; margin-top: auto; }
+    .btn-download:hover { background: #2563eb; }
+    
+    /* Spinner */
+    .spinner { width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Empty State & Main Content Views */
+    .empty-state, .main-content-view {
+      grid-column: 1 / -1;
+      text-align: right; padding: 2rem; color: var(--text-primary);
+      border: 2px dashed var(--border-color); border-radius: 12px; background: rgba(30, 41, 59, 0.3);
+    }
+    .empty-state { text-align: center; padding: 4rem; }
+    .main-content-view img { max-width: 100%; border-radius: 8px; margin-top: 1rem; border: 1px solid var(--border-color); }
+    .main-content-view table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .main-content-view th, .main-content-view td { padding: 0.8rem; border: 1px solid var(--border-color); text-align: right; }
+    .main-content-view th { background-color: var(--card-bg); }
+    .main-content-view ul { margin-right: 1.5rem; }
+    .main-content-view li { margin-bottom: 0.5rem; }
+
+  </style>
+
+<link rel="stylesheet" href="/index.css">
+</head>
+<body>
+
+  <!-- Main Application Layout -->
+  <div class="app-layout" id="app-layout">
+    
+    <!-- Right Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">HEMA<span>SOFT</span></div>
+        <div style="font-size:0.8rem; color:var(--text-secondary);">AI Workspace</div>
+      </div>
+      
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-target="panel-search">بحث متقدم</button>
+        <button class="tab-btn" data-target="panel-workspace">مساحة العمل</button>
+        <button class="tab-btn" data-target="panel-chat" style="color: var(--accent-purple);">الدعم الفني</button>
+      </nav>
+
+      <!-- Panel 1: Search -->
+      <div id="panel-search" class="sidebar-content panel active">
+        <form id="search-form">
+          <div class="form-group">
+            <label>نوع الجهاز</label>
+            <select id="deviceType" class="form-control">
+              <option value="Receiver">ريسيفر</option>
+              <option value="Router">راوتر</option>
+              <option value="DVR">جهاز تسجيل</option>
+              <option value="TV">شاشة ذكية</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>الماركة</label>
+            <input type="text" id="brand" class="form-control" placeholder="مثال: Starsat, TP-Link">
+          </div>
+          <div class="form-group">
+            <label>الموديل</label>
+            <input type="text" id="model" class="form-control" placeholder="مثال: SR-2000HD Hyper">
+          </div>
+          <div class="form-group">
+            <label>معلومات إضافية</label>
+            <textarea id="extraInfo" class="form-control" placeholder="اكتب أي تفاصيل إضافية هنا..."></textarea>
+          </div>
+           <div class="form-group">
+            <label>تضمين نطاقات (اختياري)</label>
+            <input type="text" id="includeDomains" class="form-control" placeholder="مثال: tp-link.com, startimes.com">
+          </div>
+           <div class="form-group">
+            <label>استبعاد نطاقات (اختياري)</label>
+            <input type="text" id="excludeDomains" class="form-control" placeholder="مثال: adfly.com, mega.nz">
+          </div>
+          <div class="form-group">
+            <label>عدد النتائج</label>
+            <select id="resultCount" class="form-control">
+              <option value="6">6</option>
+              <option value="9">9</option>
+              <option value="12">12</option>
+            </select>
+          </div>
+          <button type="submit" id="btn-search" class="btn-primary">بدء البحث الشامل</button>
+        </form>
+      </div>
+
+      <!-- Panel 2: Workspace -->
+      <div id="panel-workspace" class="sidebar-content panel">
+          <h4>تحليل الملفات</h4>
+          <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:1rem;">ارفع ملف صورة، سوفتوير (.bin) أو ملف دامب (.dp) لتحليله.</p>
+          <div class="form-group">
+            <label for="file-upload-workspace">اختر ملفًا</label>
+            <input type="file" id="file-upload-workspace" class="form-control" accept=".bin,.dp,image/*">
+          </div>
+          <button id="btn-analyze-file" class="btn-primary btn-secondary">
+            بدء التحليل
+          </button>
+          <hr style="border-color: var(--border-color); margin: 2rem 0;">
+          <h4>المهام النشطة</h4>
+          <div id="workspace-tasks">
+            <p style="color:var(--text-secondary); font-size:0.9rem;">لا توجد مهام حالية.</p>
+          </div>
+      </div>
+
+      <!-- Panel 3: AI Chat -->
+      <div id="panel-chat" class="sidebar-content panel">
+        <div style="font-size: 0.85rem; line-height: 1.5; background: rgba(0,0,0,0.2); padding: 0.8rem; border-radius: 8px; margin-bottom:1rem;">
+           <strong style="color:var(--accent-purple);">🤖 المساعد الذكي:</strong><br>
+           <span style="color:var(--text-secondary);">يمكنني مساعدتك في التثبيت، تحليل الملفات، أو توليد صور توضيحية.</span>
+        </div>
+        <div id="chat-history">
+          <div class="message ai">مرحباً بك. كيف يمكنني خدمتك اليوم؟</div>
+        </div>
+        <div class="chat-input-area">
+          <button id="chat-attach-btn" class="btn-icon" title="إرفاق ملف">📎</button>
+          <input type="file" id="file-upload-chat" class="hidden" accept=".bin,.dp,image/*">
+          <input type="text" id="chat-input" class="form-control" placeholder="اكتب رسالتك...">
+          <button id="btn-chat-send" class="btn-primary" style="width: auto; padding: 0 1.2rem; margin-top:0;">➤</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-area">
+      <div class="main-header">
+        <div class="main-title">
+          <h1 id="page-title">نتائج البحث</h1>
+          <p id="page-subtitle">نظام HEMA SOFT المتطور</p>
+        </div>
+      </div>
+      <div id="results-grid" class="results-grid">
+        <div class="empty-state">
+          <h3>بانتظار تعليماتك 📡</h3>
+          <p>استخدم الشريط الجانبي لتحديد معايير البحث بدقة.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { GoogleGenAI } from 'https://esm.sh/@google/genai';
+
+    // --- Config & State ---
+    const API_KEY = 'AIzaSyA5i1_BTfnmZ9-07TRXJeWQy8ppeurTRV0';
+    let ai;
+    let chatSession;
+
+    // --- DOM Elements ---
+    const els = {
+      grid: document.getElementById('results-grid'),
+      pageTitle: document.getElementById('page-title'),
+      chatHistory: document.getElementById('chat-history'),
+      chatInput: document.getElementById('chat-input'),
+      fileUploadChatInput: document.getElementById('file-upload-chat'),
+      fileUploadWorkspaceInput: document.getElementById('file-upload-workspace'),
+    };
+
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+          ai = new GoogleGenAI({ apiKey: API_KEY });
+          setupEventListeners();
+      } catch (err) {
+          console.error("AI Initialization Error:", err);
+          renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>فشل تهيئة الذكاء الاصطناعي</h3><p>حدث خطأ أثناء تهيئة واجهة برمجة التطبيقات. قد يكون المفتاح غير صالح.</p></div>`);
+      }
+    });
+
+    function setupEventListeners() {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', handleTabSwitch));
+      document.getElementById('search-form').addEventListener('submit', handleSearch);
+      document.getElementById('btn-chat-send').addEventListener('click', handleChat);
+      els.chatInput.addEventListener('keypress', (e) => e.key === 'Enter' && handleChat());
+      document.getElementById('chat-attach-btn').addEventListener('click', () => els.fileUploadChatInput.click());
+      els.fileUploadChatInput.addEventListener('change', (e) => handleFileAnalysis(e.target.files[0], 'chat'));
+      document.getElementById('btn-analyze-file').addEventListener('click', () => handleFileAnalysis(els.fileUploadWorkspaceInput.files[0], 'workspace'));
+    }
+
+    // --- Handlers ---
+    function handleTabSwitch(e) {
+        const targetId = e.target.dataset.target;
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById(targetId).classList.add('active');
+        els.pageTitle.textContent = e.target.textContent;
+    }
+
+    async function handleSearch(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-search');
+      renderMainContent('<div class="empty-state"><div class="spinner" style="border-color:var(--accent-blue); margin:0 auto 1rem;"></div><p>جاري البحث في المصادر الموثوقة...</p></div>', 'نتائج البحث');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div>';
+      
+      try {
+        if (!ai) throw new Error("لم تتم تهيئة الذكاء الاصطناعي.");
+        const data = ['deviceType', 'brand', 'model', 'extraInfo', 'resultCount', 'includeDomains', 'excludeDomains'].reduce((acc, id) => ({...acc, [id]: document.getElementById(id).value.trim()}), {});
+        if (!data.brand && !data.model) throw new Error('الرجاء كتابة الماركة أو الموديل');
+
+        const domainFilter = data.includeDomains ? ` Prioritize sites: ${data.includeDomains}.` : '';
+        const exclusionFilter = data.excludeDomains ? ` Exclude sites: ${data.excludeDomains}.` : '';
+
+        const prompt = `
+          Role: Expert Firmware Search Engine.
+          Task: Find exactly ${data.resultCount} diverse and verified download links for: ${data.brand} ${data.model} (${data.deviceType}).
+          User's extra info: "${data.extraInfo || 'None'}".
+          
+          Search Rules:
+          ${domainFilter}
+          ${exclusionFilter}
+          
+          Verification Protocol:
+          1. Prioritize official manufacturer websites.
+          2. Use reputable community forums (e.g., XDA, startimes) for unofficial links.
+          3. AVOID link shorteners and ad-heavy sites.
+          4. Label each result as [Official] or [Community].
+          
+          Output Format (PIPE-SEPARATED, one entry per line, NO markdown):
+          [Type] Name | Source Name | URL
+        `;
+
+        const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: prompt, config: { tools: [{googleSearch: {}}] } });
+        const results = parseResults(response.text);
+        renderGrid(results);
+
+      } catch (err) {
+        console.error("Search Error:", err);
+        renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>خطأ في البحث</h3><p>${err.message}</p></div>`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'بدء البحث الشامل';
+      }
+    }
+
+    async function handleChat() {
+      const txt = els.chatInput.value.trim();
+      if (!txt) return;
+      els.chatInput.value = '';
+      appendMessage('user', txt);
+
+      const btn = document.getElementById('btn-chat-send');
+      btn.disabled = true;
+      const loadingId = appendMessage('ai', '<div class="spinner"></div>');
+
+      try {
+        if (!ai) throw new Error("لم تتم تهيئة الذكاء الاصطناعي.");
+        if (!chatSession) {
+          chatSession = ai.chats.create({
+            model: "gemini-2.5-flash",
+            config: {
+              systemInstruction: `You are 'HEMA SOFT AI', an expert in satellite receiver and router firmware, speaking Arabic.
+              Response Protocol:
+              1. For simple text answers, reply directly.
+              2. For rich content (tables, multi-step guides), start your response with "RICH_CONTENT::".
+              3. To generate an image with the 'Nano Banana' tool, reply ONLY with "IMAGE_GEN_REQUEST:" and a detailed English description for the image model. Example: IMAGE_GEN_REQUEST: a white TP-Link Archer C6 router on a dark wooden table.`,
+              tools: [{googleSearch: {}}]
+            }
+          });
+        }
+        
+        const result = await chatSession.sendMessage({ message: txt });
+        const responseText = result.text;
+        
+        if (responseText.startsWith("RICH_CONTENT::")) {
+            const richContent = responseText.substring(14).trim();
+            renderMainContent(`<div class="main-content-view">${renderMarkdown(richContent)}</div>`, 'استجابة المساعد الذكي');
+            updateMessage(loadingId, 'تم عرض المعلومات في مساحة العمل.');
+        } else if (responseText.startsWith("IMAGE_GEN_REQUEST:")) {
+            const imagePrompt = responseText.replace("IMAGE_GEN_REQUEST:", "").trim();
+            updateMessage(loadingId, "طلبك قيد المعالجة... جاري توليد الصورة بواسطة Nano Banana.");
+            generateDeviceImage(imagePrompt);
+        } else {
+            updateMessage(loadingId, renderMarkdown(responseText));
+        }
+
+      } catch (err) {
+        console.error("Chat Error:", err);
+        updateMessage(loadingId, "عذراً، حدث خطأ في المعالجة. يرجى المحاولة مجدداً.");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+    async function handleFileAnalysis(file, source = 'workspace') {
+        if (!file) return;
+        
+        const statusMessageId = source === 'chat' ? appendMessage('ai', 'جاري تحليل الملف...') : null;
+        renderMainContent('<div class="empty-state"><div class="spinner" style="margin: 0 auto 1rem"></div><p>جاري تحليل الملف...</p></div>', 'نتائج تحليل الملف');
+
+        try {
+            if (!ai) throw new Error("لم يتم تهيئة الذكاء الاصطناعي.");
+            const base64Data = await fileToBase64(file);
+            const filePart = { inlineData: { mimeType: file.type || 'application/octet-stream', data: base64Data.split(',')[1] } };
+            
+            let prompt = `Analyze this file named "${file.name}". `;
+            if(file.type.startsWith('image/')) {
+                prompt += "It's an image, likely of electronic hardware. Identify the device, its ports, and any visible model numbers. Provide a technical summary in Arabic.";
+            } else { // for .bin, .dp, etc.
+                prompt += "It's a firmware file. Based on its name and metadata (I cannot read the binary content), what device is it likely for? What are the potential risks or installation steps? Provide a detailed summary in Arabic. Format the output as RICH_CONTENT:: followed by Markdown.";
+            }
+
+            const response = await ai.models.generateContent({ model: "gemini-2.5-flash", contents: { parts: [{text: prompt}, filePart] } });
+            const responseText = response.text;
+
+            if (statusMessageId) updateMessage(statusMessageId, "اكتمل تحليل الملف. انظر النتائج في مساحة العمل.");
+            
+            const filePreview = file.type.startsWith('image/') ? `<img src="${base64Data}" alt="preview">` : '';
+            const contentToRender = responseText.startsWith("RICH_CONTENT::") ? responseText.substring(14).trim() : responseText;
+
+            renderMainContent(`<div class="main-content-view"><h3>${file.name}</h3>${filePreview}<div style="text-align:right; margin-top:1rem;">${renderMarkdown(contentToRender)}</div></div>`, 'نتائج تحليل الملف');
+
+        } catch(err) {
+            console.error("File Analysis Error:", err);
+            const errorMsg = "فشل تحليل الملف. قد يكون حجمه كبيراً جداً أو غير مدعوم.";
+            if (statusMessageId) updateMessage(statusMessageId, errorMsg);
+            renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>خطأ في التحليل</h3><p>${errorMsg}</p></div>`);
+        } finally {
+            els.fileUploadChatInput.value = '';
+            els.fileUploadWorkspaceInput.value = '';
+        }
+    }
+
+    async function generateDeviceImage(prompt) {
+        renderMainContent('<div class="empty-state"><div class="spinner" style="margin:0 auto 1rem;"></div><p>...Nano Banana يقوم بإنشاء النموذج البصري</p></div>', 'صورة مولّدة بواسطة الذكاء الاصطناعي');
+        try {
+            if (!ai) throw new Error("لم يتم تهيئة الذكاء الاصطناعي.");
+            const response = await ai.models.generateImages({
+                model: 'imagen-4.0-generate-001',
+                prompt: `concept art, high-fidelity, technical illustration of: ${prompt}. photorealistic, 8k, detailed, dark studio background`,
+                config: { numberOfImages: 1, aspectRatio: '16:9' }
+            });
+            const imageUrl = `data:image/png;base64,${response.generatedImages[0].image.imageBytes}`;
+            renderMainContent(`<div class="main-content-view"><h3>${prompt}</h3><img src="${imageUrl}" alt="Generated Image"></div>`, 'صورة مولّدة بواسطة Nano Banana');
+        } catch (err) {
+            console.error("Image Generation Error:", err);
+            renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>فشل توليد الصورة</h3><p>قد يكون الطلب مخالفاً لسياسات الأمان.</p></div>`);
+        }
+    }
+
+    // --- Renderers & Parsers ---
+    function renderMainContent(html, title = 'نتائج البحث') {
+        els.pageTitle.textContent = title;
+        els.grid.innerHTML = html;
+    }
+
+    function renderGrid(items) {
+      if (!items || items.length === 0) {
+        els.grid.innerHTML = '<div class="empty-state"><p>لا توجد نتائج مطابقة.</p></div>';
+        return;
+      }
+      els.grid.innerHTML = items.map(item => {
+        const rawName = item.name || "Unknown";
+        const isOfficial = rawName.toLowerCase().includes('official');
+        const badge = isOfficial ? 'رسمي' : 'مجتمعي';
+        return `
+          <div class="card">
+            <h3>${rawName.replace(/\[.*?\]/g, '').trim()}</h3>
+            <div class="card-meta">
+              <div><strong>المصدر:</strong> ${item.source || 'غير معروف'}</div>
+              <div><strong>النوع:</strong> <span style="background: ${isOfficial ? 'var(--accent-green)' : 'var(--accent-orange)'}; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem;">${badge}</span></div>
+            </div>
+            <a href="${item.url}" target="_blank" class="btn-download">تحميل</a>
+          </div>`;
+      }).join('');
+    }
+    
+    function appendMessage(role, text) {
+      const id = 'msg-' + Date.now();
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+      div.id = id;
+      div.innerHTML = text;
+      els.chatHistory.appendChild(div);
+      els.chatHistory.scrollTop = els.chatHistory.scrollHeight;
+      return id;
+    }
+
+    function updateMessage(id, newText) {
+        const msgElement = document.getElementById(id);
+        if (msgElement) msgElement.innerHTML = newText;
+    }
+
+    function parseResults(text) {
+        if (!text) return [];
+        return text.split('\n').filter(l => l.includes('|')).map(l => {
+            const p = l.split('|').map(x => x.trim());
+            return { name: p[0], source: p[1], url: p[2] };
+        }).filter(i => i.url && i.url.startsWith('http'));
+    }
+
+    // --- Utils ---
+    const fileToBase64 = file => new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
+    
+    function renderMarkdown(text) {
+        if (!text) return "";
+        // Basic table check
+        if (text.includes('|') && text.includes('-')) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            let html = '<table>';
+            const headerLine = lines[0];
+            const headers = headerLine.split('|').map(h => h.trim()).filter(Boolean);
+            html += '<thead><tr>';
+            headers.forEach(h => html += `<th>${h}</th>`);
+            html += '</tr></thead>';
+
+            html += '<tbody>';
+            lines.slice(2).forEach(line => {
+                const cells = line.split('|').map(c => c.trim()).filter(Boolean);
+                if (cells.length > 0) {
+                   html += '<tr>';
+                   cells.forEach(c => html += `<td>${c}</td>`);
+                   html += '</tr>';
+                }
+            });
+            html += '</tbody></table>';
+            return html;
+        }
+        
+        // Basic lists and bold
+        return text
+            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            .replace(/^\* (.*$)/gm, '<ul><li>$1</li></ul>')
+            .replace(/<\/ul>\n<ul>/g, '')
+            .replace(/\n/g, '<br>');
+    }
+  </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
