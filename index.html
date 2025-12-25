@@ -195,12 +195,51 @@
     .main-content-view th { background-color: var(--card-bg); }
     .main-content-view ul { margin-right: 1.5rem; }
     .main-content-view li { margin-bottom: 0.5rem; }
+    
+    /* API Key Modal */
+    #api-key-modal {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.98); 
+      z-index: 10000; display: flex; align-items: center; justify-content: center; 
+      text-align: right; padding: 2rem;
+    }
+    #api-key-modal-content {
+      max-width: 600px; background: #1e293b; padding: 2.5rem; 
+      border-radius: 12px; border: 1px solid #334155; 
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .btn-link {
+        color: var(--accent-blue);
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .btn-link:hover { text-decoration: underline; }
 
   </style>
 
 <link rel="stylesheet" href="/index.css">
 </head>
 <body>
+  
+  <!-- API Key Modal -->
+  <div id="api-key-modal" class="hidden">
+    <div id="api-key-modal-content">
+      <h2 style="font-size: 1.5rem; color: #f97316; margin-bottom: 1rem;">🔑 مطلوب مفتاح API</h2>
+      <p style="line-height: 1.7; color: #cbd5e1;">
+        للاستفادة من كامل قدرات الذكاء الاصطناعي في هذه المنصة، يرجى إدخال مفتاح API الخاص بك من Google AI Studio. المفاتيح العامة تم تقييدها لأسباب أمنية.
+      </p>
+      <p style="line-height: 1.7; color: #cbd5e1; margin-top: 1rem;">
+        يمكنك الحصول على مفتاح مجاني من 
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" class="btn-link">Google AI Studio</a>.
+      </p>
+      <div class="form-group" style="margin-top: 1.5rem;">
+        <label for="api-key-input">مفتاح Google AI API</label>
+        <input type="password" id="api-key-input" class="form-control" placeholder="أدخل مفتاحك هنا">
+      </div>
+      <button id="save-api-key-btn" class="btn-primary">حفظ المفتاح والمتابعة</button>
+      <p id="api-key-error" class="hidden" style="color: #fca5a5; font-size: 0.9rem; margin-top: 0.5rem;"></p>
+    </div>
+  </div>
+
 
   <!-- Main Application Layout -->
   <div class="app-layout" id="app-layout">
@@ -209,7 +248,7 @@
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="logo">HEMA<span>SOFT</span></div>
-        <div style="font-size:0.8rem; color:var(--text-secondary);">AI Workspace</div>
+        <button id="change-api-key-btn" title="تغيير مفتاح API" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.2rem;">🔑</button>
       </div>
       
       <nav class="nav-tabs">
@@ -319,7 +358,7 @@
     import { GoogleGenAI } from 'https://esm.sh/@google/genai';
 
     // --- Config & State ---
-    const API_KEY = 'AIzaSyAoYWKAESM0kvL43Bpk_0jGQV1j7ipuv1A';
+    let API_KEY = '';
     let ai;
     let chatSession;
 
@@ -331,18 +370,84 @@
       chatInput: document.getElementById('chat-input'),
       fileUploadChatInput: document.getElementById('file-upload-chat'),
       fileUploadWorkspaceInput: document.getElementById('file-upload-workspace'),
+      apiKeyModal: document.getElementById('api-key-modal'),
+      apiKeyInput: document.getElementById('api-key-input'),
+      saveApiKeyBtn: document.getElementById('save-api-key-btn'),
+      changeApiKeyBtn: document.getElementById('change-api-key-btn'),
+      apiKeyError: document.getElementById('api-key-error'),
     };
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', () => {
+      API_KEY = localStorage.getItem('gemini_api_key');
+      if (!API_KEY) {
+        showApiKeyModal();
+      } else {
+        initializeApp();
+      }
+      setupApiKeyListeners();
+    });
+
+    function setupApiKeyListeners() {
+      els.saveApiKeyBtn.addEventListener('click', handleApiKeySave);
+      els.changeApiKeyBtn.addEventListener('click', showApiKeyModal);
+    }
+    
+    function showApiKeyModal() {
+      els.apiKeyModal.classList.remove('hidden');
+    }
+
+    async function handleApiKeySave() {
+      const key = els.apiKeyInput.value.trim();
+      if (!key) {
+        els.apiKeyError.textContent = 'الرجاء إدخال مفتاح صالح.';
+        els.apiKeyError.classList.remove('hidden');
+        return;
+      }
+      
+      els.saveApiKeyBtn.disabled = true;
+      els.saveApiKeyBtn.innerHTML = '<div class="spinner"></div>';
+      els.apiKeyError.classList.add('hidden');
+
+      try {
+        // Test the key by making a simple request
+        const testAI = new GoogleGenAI({ apiKey: key });
+        await testAI.models.generateContent({model: "gemini-2.5-flash", contents: "test"});
+
+        // If successful, save and initialize
+        API_KEY = key;
+        localStorage.setItem('gemini_api_key', key);
+        els.apiKeyModal.classList.add('hidden');
+        initializeApp();
+
+      } catch (err) {
+        console.error("API Key Test Failed:", err);
+        if (err.message && err.message.includes('"code":429')) {
+             els.apiKeyError.textContent = 'تم تجاوز حد الاستخدام. يرجى الانتظار أو التحقق من خطة الفوترة الخاصة بك.';
+        } else {
+             els.apiKeyError.textContent = 'المفتاح غير صالح أو حدث خطأ في الشبكة. الرجاء التحقق والمحاولة مرة أخرى.';
+        }
+        els.apiKeyError.classList.remove('hidden');
+      } finally {
+        els.saveApiKeyBtn.disabled = false;
+        els.saveApiKeyBtn.textContent = 'حفظ المفتاح والمتابعة';
+      }
+    }
+
+    function initializeApp() {
+       if (!API_KEY) {
+        console.error("لا يوجد مفتاح API. لا يمكن تهيئة التطبيق.");
+        return;
+      }
       try {
           ai = new GoogleGenAI({ apiKey: API_KEY });
           setupEventListeners();
+          console.log("تم تهيئة الذكاء الاصطناعي بنجاح.");
       } catch (err) {
           console.error("AI Initialization Error:", err);
           renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>فشل تهيئة الذكاء الاصطناعي</h3><p>حدث خطأ أثناء تهيئة واجهة برمجة التطبيقات. قد يكون المفتاح غير صالح.</p></div>`);
       }
-    });
+    }
 
     function setupEventListeners() {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', handleTabSwitch));
@@ -404,7 +509,11 @@
 
       } catch (err) {
         console.error("Search Error:", err);
-        renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>خطأ في البحث</h3><p>${err.message}</p></div>`);
+        let errorMsg = err.message;
+        if (err.message && err.message.includes('"code":429')) {
+            errorMsg = 'تم تجاوز حد الاستخدام المجاني. يرجى المحاولة مرة أخرى لاحقاً.';
+        }
+        renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>خطأ في البحث</h3><p>${errorMsg}</p></div>`);
       } finally {
         btn.disabled = false;
         btn.innerHTML = 'بدء البحث الشامل';
@@ -454,7 +563,11 @@
 
       } catch (err) {
         console.error("Chat Error:", err);
-        updateMessage(loadingId, "عذراً، حدث خطأ في المعالجة. يرجى المحاولة مجدداً.");
+        let errorMsg = "عذراً، حدث خطأ في المعالجة. يرجى المحاولة مجدداً.";
+        if (err.message && err.message.includes('"code":429')) {
+            errorMsg = 'تم تجاوز حد الاستخدام المجاني. يرجى المحاولة مرة أخرى لاحقاً.';
+        }
+        updateMessage(loadingId, errorMsg);
       } finally {
         btn.disabled = false;
       }
@@ -490,7 +603,10 @@
 
         } catch(err) {
             console.error("File Analysis Error:", err);
-            const errorMsg = "فشل تحليل الملف. قد يكون حجمه كبيراً جداً أو غير مدعوم.";
+            let errorMsg = "فشل تحليل الملف. قد يكون حجمه كبيراً جداً أو غير مدعوم.";
+            if (err.message && err.message.includes('"code":429')) {
+                errorMsg = 'تم تجاوز حد الاستخدام المجاني. يرجى المحاولة مرة أخرى لاحقاً.';
+            }
             if (statusMessageId) updateMessage(statusMessageId, errorMsg);
             renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>خطأ في التحليل</h3><p>${errorMsg}</p></div>`);
         } finally {
@@ -512,7 +628,11 @@
             renderMainContent(`<div class="main-content-view"><h3>${prompt}</h3><img src="${imageUrl}" alt="Generated Image"></div>`, 'صورة مولّدة بواسطة Nano Banana');
         } catch (err) {
             console.error("Image Generation Error:", err);
-            renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>فشل توليد الصورة</h3><p>قد يكون الطلب مخالفاً لسياسات الأمان.</p></div>`);
+            let errorMsg = 'قد يكون الطلب مخالفاً لسياسات الأمان أو أن مفتاح API غير صالح لهذه الميزة.';
+            if (err.message && err.message.includes('"code":429')) {
+                errorMsg = 'تم تجاوز حد الاستخدام المجاني لميزة توليد الصور. يرجى المحاولة مرة أخرى لاحقاً.';
+            }
+            renderMainContent(`<div class="empty-state" style="border-color:var(--accent-orange); color:#fca5a5;"><h3>فشل توليد الصورة</h3><p>${errorMsg}</p></div>`);
         }
     }
 
